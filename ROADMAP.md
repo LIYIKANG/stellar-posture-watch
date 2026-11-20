@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-20T12:26Z (add and close 9.11, fenced() escapes pipes)
+Last updated: 2026-11-20T12:27Z (add and close 9.12, no exit of sync_issue.py prints the token)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -667,6 +667,22 @@ it is why this repository's value right now is the plumbing rather than the find
   `scripts/render_report.py`, the state payload is untouched, and `tests/test_fenced_pipes.py`
   adds 11 cases (taking the suite from 202 to 213) over the helper, the New, Current and Resolved
   tables, the account table and a forged marker. **Issue:** #57.
+- [x] **9.12** No exit path of `sync_issue.py` lets the token out. Added 2026-11-20 from issue
+  #73: `redact()` had one test, three 500s with one bearer value, while `main()` has four other
+  exits that print and `emit()` writes a step output. Done-when: `tests/test_sync_token_stderr.py`
+  drives `find` and `write` through 401, 403, 404, 422, a 429 that then fails, three 500s, a
+  `URLError`, an `OSError` and a 200 that is not JSON, each message carrying the token; the
+  empty-token, `BadInput` and summary-missing paths run through `main()` with `GITHUB_OUTPUT` set;
+  the token appears in none of stdout, stderr or that file while `[redacted]` appears where the
+  message quoted it; and the test fails against a print of the detail without `redact()`. Closed
+  locally 2026-11-20: 9 tests (taking the suite from 213 to 222) run 14 transport failures in four
+  message shapes across `find` and both `write` paths, then the exits before the first call and
+  the exits that succeed, and one test swaps `redact()` for the identity to show the table reports
+  stderr once the mask is gone. Two cases proved a leak, and each moved one call site in
+  `scripts/sync_issue.py`: a refusal quoted its argument unmasked, and the 200 character cut of an
+  error body ran before the mask, so a token crossing the limit came out as a prefix of up to 39
+  of its 40 characters. The `redact()` pattern, `action.yml` and the retry policy are untouched.
+  **Issue:** #73.
 
 ## 6. Gates
 
@@ -733,7 +749,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 5 | 8 | 62% |
-| 9 (backlog) | Backlog, not scheduled | 5 | 11 | 45% |
+| 9 (backlog) | Backlog, not scheduled | 6 | 12 | 50% |
 | **All phases** | **Readiness total** | **35** | **39** | **90%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -767,6 +783,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 2026-11-14 | Task 9.7 closes: `tests/fixtures/README.md` gains a `sha256` column binding all six JSON report fixtures to their provenance rows while leaving the six fixture files and `tests/test_render_report.py` untouched, and `tests/test_fixture_manifest.py` adds 9 stdlib tests plus `--print-rows` to verify column shape, row coverage, `derived` markers on hand-built reports, and raw-byte digests, printing both digests and the regeneration command on a mismatch. Suite moves from 185 to 194 cases; `ruff` and `mypy` check 11 source files cleanly. | 9.7 |
 | 2026-11-20 | Tasks 9.8, 9.9, and 9.10 close: `scripts/render_report.py` stages outputs through temporary files and replaces body before summary; `action.yml` adds runner token masking as the first composite step and an event guard refusing non-dry pull_request runs before checkout; 3 new unit test modules (`test_output_atomicity.py`, `test_action_token_masking.py`, `test_action_event_guard.py`) add 8 test cases. | 9.8, 9.9, 9.10 |
 | 2026-11-20 | Task 9.11 is added and closes: `fenced()` in `scripts/render_report.py` now writes an inner pipe as `\\|` before it turns backticks into `&#96;`, so a rule id, an account id or a flag name carrying a pipe can no longer end its table cell and shift the cells after it. This changes presentation only: the state marker carries the same payload, and a value without a pipe renders byte for byte as before. Inside a table GitHub removes the backslash again, so the cell shows the value as given; outside a table, in the header sentence, the backslash stays visible. `tests/test_fenced_pipes.py` adds 11 stdlib cases covering the helper, the New, Current and Resolved finding tables at five cells per row, the account table at eight, and a hand-edited marker; before the change the rendered cases fail on rows of six or more cells. Suite moves from 202 to 213 cases; `ruff` and `mypy` check 12 source files cleanly. `ARCHITECTURE.md` section 4 and the rule table in `CONTRIBUTING.md` say what `fenced()` now does. | 9.11 (added) |
+| 2026-11-20 | Task 9.12 is added and closes: `tests/test_sync_token_stderr.py` drives every exit of `scripts/sync_issue.py` with the token inside the message and reads the three places a step can leak through, stdout, stderr and the file `GITHUB_OUTPUT` names. Fourteen transport failures (302, 401, 403 with and without `Retry-After`, 404, 422, three shapes of 429, three 500s, `URLError`, `TimeoutError`, `OSError` and a 200 that is not JSON) run in four message shapes through `find`, the opening `write` and the updating `write`; the empty-token, refused-argument and missing-summary exits and five successful runs are read the same way; and one test replaces `redact()` with the identity to prove the table reports stderr when the mask is gone. Two cases failed on `main` and each changed one line of `scripts/sync_issue.py`. A refusal printed the argument it refused as given, so an owner, repo or label that carried the token reached stderr; that print now goes through `redact()`. And the body of an HTTP error was cut to 200 characters before it was masked, so a token that crossed the limit was left as a prefix of 8 to 39 characters that no pattern recognises; the cut now happens inside `redact()`, after the mask. The pattern itself, `action.yml` and the retry policy did not move. Suite moves from 213 to 222 cases; `ruff` and `mypy` check 12 source files cleanly. | 9.12 (added) |
 
 ## 9. Last updated line format
 

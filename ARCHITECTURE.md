@@ -137,7 +137,11 @@ understand. Two actions, `find` and `write`, sharing one argument surface.
 - One `urllib` call site, 30 second timeout, three bounded attempts with exponential backoff
   capped at 60 seconds, honoring `Retry-After` when the response gives it.
 - Failure messages pass through `redact()`, which masks anything that looks like a `Bearer`
-  credential, so a URL echoed back from an error cannot leak the token.
+  credential, so a URL echoed back from an error cannot leak the token. The mask runs before
+  the 200 character cut of an error body, so a token that crosses the limit is not left as a
+  prefix no pattern recognises, and a refusal is masked as well, because it quotes the argument
+  it refused. `tests/test_sync_token_stderr.py` drives every exit of `main()` with the token in
+  the message and reads stdout, stderr and the step output file.
 - `find` searches open issues with the configured label for the marker, then falls back to
   adopting an open issue with the configured title, across at most five pages of 100.
 - `write` creates the baseline when there is no issue, updates body plus one comment when the

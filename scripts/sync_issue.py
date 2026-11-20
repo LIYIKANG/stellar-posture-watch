@@ -123,7 +123,9 @@ def request(method: str, url: str, token: str, payload: dict | None = None) -> t
         try:
             return TRANSPORT(method, url, headers, body)
         except urllib.error.HTTPError as exc:
-            detail = exc.read()[:200].decode("utf-8", "replace")
+            # No cut here: redact() cuts to 200 characters after it has masked. Cutting first
+            # left a token that crossed the limit as a prefix no pattern recognises.
+            detail = exc.read().decode("utf-8", "replace")
             if (
                 (exc.code == 429 and retryable(exc))
                 or (
@@ -398,7 +400,8 @@ def main(argv: list[str] | None = None) -> int:
         default_repository(args)
         check_path_segments(args)
     except BadInput as exc:
-        print(f"sync_issue: refused: {exc}", file=sys.stderr)
+        # A refusal quotes the argument it refused, and that argument can be the token.
+        print(f"sync_issue: refused: {redact(str(exc))}", file=sys.stderr)
         return 2
     try:
         if args.action == "find":
