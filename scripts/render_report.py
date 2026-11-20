@@ -27,6 +27,7 @@ import os
 import re
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import TypedDict
 
@@ -34,6 +35,18 @@ MARKER_PREFIX = "<!-- posture-watch:state v1 "
 MARKER_SUFFIX = " -->"
 MAX_STATE_ENTRIES = 200
 MAX_MARKER_CHARS = 20_000
+# The API's ceiling on an issue body, in characters. `sync_issue.BODY_LIMIT` is the same number.
+MAX_BODY_CHARS = 65_536
+# The finding tables, by the heading each is written under. Their order here is the order
+# they give up rows when a body is over the ceiling: what the policy accepted goes first and
+# the two change lists go last, because what moved is what a reader opens the issue for.
+TABLE_TITLES = {
+    "accepted": "Accepted in the policy",
+    "current": "Current findings",
+    "resolved": "Resolved since the previous run",
+    "new": "New since the previous run",
+}
+DROPPED_ROW = "| ... | ... | ... | ... | {dropped} more left out to fit the body limit |"
 SEVERITIES = ("high", "warn")
 SEVERITY_RANK = {"high": 0, "warn": 1}
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -218,20 +231,98 @@ def sort_findings(findings: list[Finding]) -> list[Finding]:
     )
 
 
-def finding_rows(findings: list[Finding]) -> str:
+def finding_rows(findings: list[Finding], keep: int | None = None) -> str:
+    """One table of findings. With `keep`, only that many rows, and a last row saying so."""
     if not findings:
         return "None.\n"
     lines = [
         "| Severity | Rule | Account | Fingerprint | Message |",
         "| --- | --- | --- | --- | --- |",
     ]
-    for finding in sort_findings(findings):
+    ordered = sort_findings(findings)
+    shown = ordered if keep is None else ordered[:keep]
+    for finding in shown:
         lines.append(
             f"| {escape(finding['severity'])} | {fenced(finding['rule'])} "
             f"| {fenced(finding['account'])} | {fenced(finding['fingerprint'][:12])} "
             f"| {escape(finding['message'])} |"
         )
+    if len(shown) < len(ordered):
+        lines.append(DROPPED_ROW.format(dropped=len(ordered) - len(shown)))
     return "\n".join(lines) + "\n"
+
+
+def finding_sections(tables: dict[str, list[Finding]], keep: dict[str, int]) -> str:
+    """The finding tables under their headings, each cut to `keep` rows where that is fewer."""
+
+    def rows(name: str) -> str:
+        cut = keep[name] if keep[name] < len(tables[name]) else None
+        return finding_rows(tables[name], cut)
+
+    parts = [
+        f"\n## {TABLE_TITLES[name]}\n\n{rows(name)}" for name in ("new", "resolved", "current")
+    ]
+    if tables["accepted"]:
+        parts.append(
+            f"\n## {TABLE_TITLES['accepted']}\n\nThese are recorded as accepted with a reason in "
+            "the policy file, so they do not count as open and do not reappear in the lists "
+            f"above.\n\n{rows('accepted')}"
+        )
+    return "".join(parts)
+
+
+def shortened_notice(
+    dropped: dict[str, int], totals: dict[str, int], omitted: int, open_count: int
+) -> str:
+    """The paragraph an over-limit body opens with: what was left out, and what was not.
+
+    It is built from counts and fixed headings only, so nothing a report or an account
+    holder chose reaches it.
+    """
+    count = sum(dropped.values())
+    where = ", ".join(
+        f"{dropped[name]} of {totals[name]} under {title}"
+        for name, title in reversed(TABLE_TITLES.items())
+        if name in dropped
+    )
+    if omitted:
+        state = (
+            "The state marker is partial for its own reason, given above, and leaving these "
+            "rows out took nothing more from it."
+        )
+    elif open_count:
+        state = (
+            "The state marker at the foot of this body still carries the full open set, "
+            f"{open_count} finding{'s' if open_count != 1 else ''}, so the next run compares "
+            "against all of it."
+        )
+    else:
+        state = "The state marker at the foot of this body still records that nothing is open."
+    return (
+        f"\n**This body was shortened to fit.** An issue body can hold {MAX_BODY_CHARS} "
+        f"characters, so {count} finding row{'s were' if count != 1 else ' was'} left out, "
+        f"from the end of each table, where the lower severity sorts: {where}. {state}\n"
+    )
+
+
+def fit_rows(assemble: Callable[[dict[str, int]], str], totals: dict[str, int]) -> str:
+    """The body `assemble` gives once enough finding rows are left out to fit the ceiling.
+
+    Rows go in blocks of an eighth of what a table still shows, one table at a time in the
+    order of TABLE_TITLES, and the body is measured again after every block because the
+    notice naming the dropped rows is part of what has to fit. A body that is still over
+    with no finding row left is returned whole instead: the tables are not what is too
+    large, cutting them would lose rows and post nothing, and `sync_issue.py` already
+    refuses a body it cannot send.
+    """
+    keep = dict(totals)
+    whole = assemble(keep)
+    body = whole
+    for name in TABLE_TITLES:
+        while len(body) > MAX_BODY_CHARS and keep[name] > 0:
+            keep[name] -= max(1, keep[name] // 8)
+            body = assemble(keep)
+    return body if len(body) <= MAX_BODY_CHARS else whole
 
 
 def account_rows(report: dict) -> str:
@@ -367,15 +458,10 @@ def render(args: argparse.Namespace) -> tuple[str, dict[str, object]]:
             f"of {len(current)} open findings; {omitted} were left out of it, so a run that only "
             "moves those findings will report none change.\n"
         )
-    parts.append(f"\n## New since the previous run\n\n{finding_rows(new)}")
-    parts.append(f"\n## Resolved since the previous run\n\n{finding_rows(resolved)}")
-    parts.append(f"\n## Current findings\n\n{finding_rows(list(current.values()))}")
-    if accepted:
-        parts.append(
-            "\n## Accepted in the policy\n\nThese are recorded as accepted with a reason in "
-            "the policy file, so they do not count as open and do not reappear in the lists "
-            f"above.\n\n{finding_rows(accepted)}"
-        )
+    lead = "".join(parts)
+    # The finding tables go between `lead` and `tail`, and they are the only part that is
+    # written more than once: fit_rows() asks for them again with fewer rows until the body fits.
+    parts = []
     # 3.7: the heading takes the summary's word for the whole set. "## Accounts read" titled a
     # table whose own Read column says "(not read)", the same claim 3.6 removed from the sentence.
     parts.append(f"\n## Accounts asked about\n\n{account_rows(report)}")
@@ -389,6 +475,22 @@ def render(args: argparse.Namespace) -> tuple[str, dict[str, object]]:
         "ledger, nothing more.\n"
     )
     parts.append(f"\n{MARKER_PREFIX}{payload}{MARKER_SUFFIX}\n")
+    tail = "".join(parts)
+
+    tables = {
+        "new": new,
+        "resolved": resolved,
+        "current": list(current.values()),
+        "accepted": accepted,
+    }
+    totals = {name: len(rows) for name, rows in tables.items()}
+
+    def assemble(keep: dict[str, int]) -> str:
+        dropped = {name: totals[name] - keep[name] for name in totals if keep[name] < totals[name]}
+        notice = shortened_notice(dropped, totals, omitted, len(current)) if dropped else ""
+        return lead + notice + finding_sections(tables, keep) + tail
+
+    body = fit_rows(assemble, totals)
     summary: dict[str, object] = {
         "changed": changed,
         "new": len(new),
@@ -400,7 +502,7 @@ def render(args: argparse.Namespace) -> tuple[str, dict[str, object]]:
         "omitted": omitted,
         "as_of": args.as_of,
     }
-    return "".join(parts), summary
+    return body, summary
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
