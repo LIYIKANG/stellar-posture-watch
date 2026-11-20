@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-20T12:27Z (add and close 9.12, no exit of sync_issue.py prints the token)
+Last updated: 2026-11-20T12:27Z (add and close 9.13, fixture reachability check)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -683,6 +683,20 @@ it is why this repository's value right now is the plumbing rather than the find
   error body ran before the mask, so a token crossing the limit came out as a prefix of up to 39
   of its 40 characters. The `redact()` pattern, `action.yml` and the retry policy are untouched.
   **Issue:** #73.
+- [x] **9.13** Every fixture is opened by a test, and every report a test names has a row. Added
+  2026-11-20 from issue #55: `TestFixtureProvenance` compares the provenance table with the files
+  on disk and 9.7 binds each row to its bytes, but nothing asked whether a test reads the file, so
+  a capture could be listed as exercising a path while no test opened it. Done-when:
+  `tests/test_fixture_reachability.py` scans `tests/test_*.py` and asserts each file in
+  `tests/fixtures/` is named by a test module; the reverse is asserted, every report name in a
+  test module has a row in the provenance table; and a throwaway fixture plus its README row fails
+  the check, naming the unreachable file. Closed locally 2026-11-20: 12 tests (taking the suite
+  from 222 to 234), three over this repository and nine over a small tree written into a temporary
+  directory, where a listed but unread `report-unused.json` is named and the check passes once it
+  is removed. The scan reads source as text and imports nothing; `test_fixture_manifest.py` and
+  the new module are left out of it because they spell names to check the table, and a
+  `report-*.json` glob does not count as naming a file. The provenance table and the six reports
+  are untouched. **Issue:** #55.
 
 ## 6. Gates
 
@@ -749,7 +763,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 5 | 8 | 62% |
-| 9 (backlog) | Backlog, not scheduled | 6 | 12 | 50% |
+| 9 (backlog) | Backlog, not scheduled | 7 | 13 | 54% |
 | **All phases** | **Readiness total** | **35** | **39** | **90%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -784,6 +798,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 2026-11-20 | Tasks 9.8, 9.9, and 9.10 close: `scripts/render_report.py` stages outputs through temporary files and replaces body before summary; `action.yml` adds runner token masking as the first composite step and an event guard refusing non-dry pull_request runs before checkout; 3 new unit test modules (`test_output_atomicity.py`, `test_action_token_masking.py`, `test_action_event_guard.py`) add 8 test cases. | 9.8, 9.9, 9.10 |
 | 2026-11-20 | Task 9.11 is added and closes: `fenced()` in `scripts/render_report.py` now writes an inner pipe as `\\|` before it turns backticks into `&#96;`, so a rule id, an account id or a flag name carrying a pipe can no longer end its table cell and shift the cells after it. This changes presentation only: the state marker carries the same payload, and a value without a pipe renders byte for byte as before. Inside a table GitHub removes the backslash again, so the cell shows the value as given; outside a table, in the header sentence, the backslash stays visible. `tests/test_fenced_pipes.py` adds 11 stdlib cases covering the helper, the New, Current and Resolved finding tables at five cells per row, the account table at eight, and a hand-edited marker; before the change the rendered cases fail on rows of six or more cells. Suite moves from 202 to 213 cases; `ruff` and `mypy` check 12 source files cleanly. `ARCHITECTURE.md` section 4 and the rule table in `CONTRIBUTING.md` say what `fenced()` now does. | 9.11 (added) |
 | 2026-11-20 | Task 9.12 is added and closes: `tests/test_sync_token_stderr.py` drives every exit of `scripts/sync_issue.py` with the token inside the message and reads the three places a step can leak through, stdout, stderr and the file `GITHUB_OUTPUT` names. Fourteen transport failures (302, 401, 403 with and without `Retry-After`, 404, 422, three shapes of 429, three 500s, `URLError`, `TimeoutError`, `OSError` and a 200 that is not JSON) run in four message shapes through `find`, the opening `write` and the updating `write`; the empty-token, refused-argument and missing-summary exits and five successful runs are read the same way; and one test replaces `redact()` with the identity to prove the table reports stderr when the mask is gone. Two cases failed on `main` and each changed one line of `scripts/sync_issue.py`. A refusal printed the argument it refused as given, so an owner, repo or label that carried the token reached stderr; that print now goes through `redact()`. And the body of an HTTP error was cut to 200 characters before it was masked, so a token that crossed the limit was left as a prefix of 8 to 39 characters that no pattern recognises; the cut now happens inside `redact()`, after the mask. The pattern itself, `action.yml` and the retry policy did not move. Suite moves from 213 to 222 cases; `ruff` and `mypy` check 12 source files cleanly. | 9.12 (added) |
+| 2026-11-20 | Task 9.13 is added and closes: `tests/test_fixture_reachability.py` ties the provenance table to the tests in both directions by reading `tests/test_*.py` as text. Every file in `tests/fixtures/` other than the README has to be spelled by a test module, which covers the six reports and `policy-unreachable-endpoint.toml`, and every report name a test module spells has to have a row in the table. `tests/test_fixture_manifest.py` and the new module are left out of the scan, because they spell fixture names to check the table and write throwaway reports into temporary copies, so a name there is neither a use nor a claim; a `report-*.json` glob is not a name either, since a directory sweep would make every file reachable by definition. Nine of the twelve tests run the same functions over a small tree written into a temporary directory: a listed `report-unused.json` nobody opens is reported by path and passes once removed, a module that only checks the table does not rescue it, a name with no row is reported with the modules that spell it, and a module that would raise on import is read without being imported. No fixture, no row and no existing test moved. Suite moves from 222 to 234 cases; `ruff` and `mypy` check 12 source files cleanly. | 9.13 (added) |
 
 ## 9. Last updated line format
 
