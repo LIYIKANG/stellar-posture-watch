@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-14T15:21Z (close 9.7, sha256 manifest for report fixtures)
+Last updated: 2026-11-20T02:57Z (add and close 9.10, fixture reachability check)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -652,6 +652,20 @@ it is why this repository's value right now is the plumbing rather than the find
   four-column table for all six reports (`policy-unreachable-endpoint.toml` excluded as non-JSON),
   `tests/test_fixture_manifest.py` adds 9 unit tests (taking the suite from 185 to 194 cases), and
   `ruff==0.17.3` and `mypy==2.4.0` pass across all 11 source files. **Issue:** #153.
+- [x] **9.10** Every fixture is opened by a test, and every report a test names has a row. Added
+  2026-11-20 from issue #55: `TestFixtureProvenance` compares the provenance table with the files
+  on disk and 9.7 binds each row to its bytes, but nothing asked whether a test reads the file, so
+  a capture could be listed as exercising a path while no test opened it. Done-when:
+  `tests/test_fixture_reachability.py` scans `tests/test_*.py` and asserts each file in
+  `tests/fixtures/` is named by a test module; the reverse is asserted, every report name in a
+  test module has a row in the provenance table; and a throwaway fixture plus its README row fails
+  the check, naming the unreachable file. Closed locally 2026-11-20: 12 tests (taking the suite
+  from 194 to 206), three over this repository and nine over a small tree written into a temporary
+  directory, where a listed but unread `report-unused.json` is named and the check passes once it
+  is removed. The scan reads source as text and imports nothing; `test_fixture_manifest.py` and
+  the new module are left out of it because they spell names to check the table, and a
+  `report-*.json` glob does not count as naming a file. The provenance table and the six reports
+  are untouched. **Issue:** #55.
 
 ## 6. Gates
 
@@ -718,7 +732,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 5 | 8 | 62% |
-| 9 (backlog) | Backlog, not scheduled | 1 | 7 | 14% |
+| 9 (backlog) | Backlog, not scheduled | 2 | 8 | 25% |
 | **All phases** | **Readiness total** | **35** | **39** | **90%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -750,6 +764,7 @@ it is why this repository's value right now is the plumbing rather than the find
 
 | 2026-11-09 | Task 2.9 closes: `site/` arrives with a Web3 Sentinel documentation and showcase site, featuring an interactive workflow generator, live issue preview simulator, and protocol architecture pipeline. `.github/workflows/pages.yml` deploys the site to GitHub Pages. Downstream action step execution guards and token redactions included in the same changeset. | 2.9 |
 | 2026-11-14 | Task 9.7 closes: `tests/fixtures/README.md` gains a `sha256` column binding all six JSON report fixtures to their provenance rows while leaving the six fixture files and `tests/test_render_report.py` untouched, and `tests/test_fixture_manifest.py` adds 9 stdlib tests plus `--print-rows` to verify column shape, row coverage, `derived` markers on hand-built reports, and raw-byte digests, printing both digests and the regeneration command on a mismatch. Suite moves from 185 to 194 cases; `ruff` and `mypy` check 11 source files cleanly. | 9.7 |
+| 2026-11-20 | Task 9.10 is added and closes: `tests/test_fixture_reachability.py` ties the provenance table to the tests in both directions by reading `tests/test_*.py` as text. Every file in `tests/fixtures/` other than the README has to be spelled by a test module, which covers the six reports and `policy-unreachable-endpoint.toml`, and every report name a test module spells has to have a row in the table. `tests/test_fixture_manifest.py` and the new module are left out of the scan, because they spell fixture names to check the table and write throwaway reports into temporary copies, so a name there is neither a use nor a claim; a `report-*.json` glob is not a name either, since a directory sweep would make every file reachable by definition. Nine of the twelve tests run the same functions over a small tree written into a temporary directory: a listed `report-unused.json` nobody opens is reported by path and passes once removed, a module that only checks the table does not rescue it, a name with no row is reported with the modules that spell it, and a module that would raise on import is read without being imported. No fixture, no row and no existing test moved. Suite moves from 194 to 206 cases; `ruff` and `mypy` check 12 source files cleanly. | 9.10 (added) |
 
 ## 9. Last updated line format
 
