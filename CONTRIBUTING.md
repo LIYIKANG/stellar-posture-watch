@@ -38,7 +38,7 @@ says why in one line.
 | Nothing is rendered that cannot be accounted for. | `ARCHITECTURE.md` section 2 lists the load-bearing report fields. A missing field, an unknown severity, a fingerprint that is not 64 hex, or an exit code that disagrees with the run raises `Refused`: exit 2 and no partial body. |
 | Change detection says so when it is partial. | `encode_state` returns the count it dropped, and the body opens with a bold line naming both numbers instead of reporting "unchanged". |
 | HTTPS only, no redirects, bounded retries. | `api_base()` refuses anything that is not a bare https host; `RedirectRefused` raises instead of following; `request()` makes at most three attempts with a 60 second ceiling on the wait. `TestRealTransport` observes all of it against a loopback server. |
-| The token is never an argument. | `POSTURE_WATCH_TOKEN` in the step's `env`, and `redact()` masks a bearer value in every failure message. |
+| The token is never an argument. | `POSTURE_WATCH_TOKEN` in the step's `env`, and `redact()` masks a bearer value in every failure message and in every refusal that quotes an argument. |
 | Python standard library only. | D-02. The three scripts import nothing outside it; `tomllib` (3.11+) is the only non-obvious one. `requirements-dev.txt` is dev tooling, not a runtime dependency, and no workflow installs anything. |
 | Tests do not touch the network. | The only sockets are loopback servers started inside the test process, plus subprocesses of the three scripts over a temporary directory. |
 | A schedule stays green for findings and red for failures. | D-05, mapped in the last step of `action.yml`. Do not "fix" a red run by weakening this: exit 2 and 3 mean nothing was read. |
