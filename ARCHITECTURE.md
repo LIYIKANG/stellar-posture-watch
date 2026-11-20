@@ -91,7 +91,7 @@ run. Exit 2 stops the action before the checkout step.
 ## 4. `render_report.py`: report in, body out
 
 Exit 0 or 2, and never a partial body: every refusal raises `Refused` before anything is
-written. Section 2 lists what it insists on. Three jobs beyond layout:
+written. Section 2 lists what it insists on. Four jobs beyond layout:
 
 **Escaping.** `escape()` backslash-escapes the characters that can open markup in an issue
 body and rewrites every `@mention` as `@&#8203;name`, so a chain-chosen `home_domain` or
@@ -112,6 +112,18 @@ a round trip through the issue API. Up to `MAX_STATE_ENTRIES` (200) findings or
 `MAX_MARKER_CHARS` (20 000) characters, whichever comes first. Anything left out is counted
 and the body opens with a bold **Change detection is partial.** line naming both numbers,
 because a silently truncated marker would report "unchanged" for findings nobody compared.
+
+**The ceiling.** An issue body holds `MAX_BODY_CHARS` (65 536) characters, the number
+`sync_issue.BODY_LIMIT` already trims to. `fit_rows()` measures the assembled body and, when it
+is over, leaves finding rows out in blocks of an eighth of what a table still shows, one table
+at a time: accepted first, then current, then resolved, then new, because what moved is what a
+reader opens the issue for. Rows go from the end of a table, where the lower severity sorts.
+Each cut table ends in a row saying how many it left out, and the body opens with a bold
+**This body was shortened to fit.** line naming the count per table, built from counts and fixed
+headings only. The marker is never trimmed to make room: it stays last and carries what it
+carried, and the line says whether that is the full open set. A body that is still over with
+every finding row gone, which takes an account table of several hundred rows, is written whole
+and unchanged, and the refusal stays where it was, in `sync_issue.py`.
 
 If a human edits the body and destroys the marker, `decode_state` returns `None` and the
 next run declares a baseline rather than inventing a diff. That is the known cost of D-07,

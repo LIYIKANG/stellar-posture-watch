@@ -41,7 +41,7 @@ tests/                  185 cases, loopback only, run against captured reports
 <!-- METRICS:START -->
 | Indicator | Value | Source |
 |---|---|---|
-| Unit & Action Tests | **194 passing** | `python -m unittest` |
+| Unit & Action Tests | **206 passing** | `python -m unittest` |
 | Supported Findings | **4 active rules** (`acct-*`, `flag-*`) | `action.yml` |
 | Runtime Footprint | **0 external dependencies** | Python standard library |
 | State Tracking | **Idempotent issue marker** | `<!-- posture-watch:v1:state -->` |
@@ -216,6 +216,9 @@ home domain renders as text and pings nobody.
 - **The marker holds 200 findings.** Past that, or past 20 000 characters, the body opens
   with a bold line saying change detection is partial and naming both numbers. It does not
   quietly truncate.
+- **The body holds 65 536 characters.** Past that the renderer leaves finding rows out,
+  accepted ones first and the two change lists last, and the body opens with a bold line naming
+  how many rows went from which table. The marker is not trimmed to make room.
 - **One policy file, one issue.** Multiple files need multiple workflows (`ROADMAP.md` 9.3).
 
 ## Checks

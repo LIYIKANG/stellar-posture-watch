@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-14T15:21Z (close 9.7, sha256 manifest for report fixtures)
+Last updated: 2026-11-20T03:05Z (add and close 9.11, the renderer fits its own body)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -652,6 +652,21 @@ it is why this repository's value right now is the plumbing rather than the find
   four-column table for all six reports (`policy-unreachable-endpoint.toml` excluded as non-JSON),
   `tests/test_fixture_manifest.py` adds 9 unit tests (taking the suite from 185 to 194 cases), and
   `ruff==0.17.3` and `mypy==2.4.0` pass across all 11 source files. **Issue:** #153.
+- [x] **9.11** The renderer fits its own body and names what it left out. Added 2026-11-20 from
+  issue #59: `finding_rows()` rendered every finding it was given and nothing measured the result,
+  so the only ceiling was `fit_body()` in `sync_issue.py`, which trims one table after the body
+  exists and names no dropped set in the issue. Done-when: `scripts/render_report.py` defines one
+  ceiling matching the API limit, measures the assembled body, and trims finding rows in blocks
+  until it fits; an over-limit body names how many rows were dropped and says the hidden state
+  still carries the full open set; `tests/test_body_size.py` builds an over-limit report from
+  `report-findings.json` and asserts the length, the notice and a decodable marker; a body under
+  the ceiling renders byte-identically, no table is truncated without the notice, and the test
+  fails before the change. Closed locally 2026-11-20: `MAX_BODY_CHARS` is 65 536, the number
+  `sync_issue.BODY_LIMIT` holds, and `fit_rows()` drops an eighth of what a table still shows at a
+  time, accepted first and the two change lists last. A report of 700 accepted findings rendered
+  143 398 characters before and 58 787 after, with 423 rows named as left out and the marker still
+  decoding to its one open finding. `tests/test_body_size.py` adds 12 cases (taking the suite from
+  194 to 206), and all six captured reports render to the same bytes as on `main`. **Issue:** #59.
 
 ## 6. Gates
 
@@ -718,7 +733,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 5 | 8 | 62% |
-| 9 (backlog) | Backlog, not scheduled | 1 | 7 | 14% |
+| 9 (backlog) | Backlog, not scheduled | 2 | 8 | 25% |
 | **All phases** | **Readiness total** | **35** | **39** | **90%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -750,6 +765,7 @@ it is why this repository's value right now is the plumbing rather than the find
 
 | 2026-11-09 | Task 2.9 closes: `site/` arrives with a Web3 Sentinel documentation and showcase site, featuring an interactive workflow generator, live issue preview simulator, and protocol architecture pipeline. `.github/workflows/pages.yml` deploys the site to GitHub Pages. Downstream action step execution guards and token redactions included in the same changeset. | 2.9 |
 | 2026-11-14 | Task 9.7 closes: `tests/fixtures/README.md` gains a `sha256` column binding all six JSON report fixtures to their provenance rows while leaving the six fixture files and `tests/test_render_report.py` untouched, and `tests/test_fixture_manifest.py` adds 9 stdlib tests plus `--print-rows` to verify column shape, row coverage, `derived` markers on hand-built reports, and raw-byte digests, printing both digests and the regeneration command on a mismatch. Suite moves from 185 to 194 cases; `ruff` and `mypy` check 11 source files cleanly. | 9.7 |
+| 2026-11-20 | Task 9.11 is added and closes: `scripts/render_report.py` gets its own body ceiling. `MAX_BODY_CHARS` is 65 536, the number `sync_issue.BODY_LIMIT` already holds, and a test keeps the two equal. `render()` now builds the body in three pieces, what comes before the finding tables, the tables, and what comes after, and `fit_rows()` asks for the tables again with fewer rows while the whole is over: an eighth of what a table still shows at a time, accepted first, then current, then resolved, then new, each from the low-severity end. A cut table ends in a row giving its count, and the body opens with a bold line naming how many rows went from which table and saying what the state marker still carries. That line and that row are made of counts and fixed headings, so no chain-authored string reaches them, and the marker is not touched: it stays last and decodes to the same entries as an unfitted render. Measured on reports built from `report-findings.json`: 700 accepted findings rendered 143 398 characters before and 58 787 after with 423 rows left out and the marker decoding to its one open finding; 601 open findings rendered 263 335 before and 64 246 after with 993 rows left out and the marker decoding to the same 50 entries either way, under the partial notice it already carried. A body that is still over with every finding row gone, 900 accounts in the test, is written whole exactly as before, because cutting findings there would lose rows and still post nothing; `sync_issue.py`, its trimmer and its refusal are untouched. All six captured reports, alone and with each other as the previous body, render to the same bytes as on `main`. `tests/test_body_size.py` adds 12 cases; suite moves from 194 to 206; `ruff` and `mypy` check 12 source files cleanly. `ARCHITECTURE.md` section 4 and the limits list in `README.md` describe the ceiling. | 9.11 (added) |
 
 ## 9. Last updated line format
 

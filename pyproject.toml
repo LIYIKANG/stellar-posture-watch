@@ -18,6 +18,7 @@ files = [
     "scripts/roadmap_progress.py",
     "tests/test_validate_inputs.py",
     "tests/test_render_report.py",
+    "tests/test_body_size.py",
     "tests/test_sync_issue.py",
     "tests/test_check_action.py",
     "tests/test_fixture_manifest.py",
