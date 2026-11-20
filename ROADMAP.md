@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-20T02:26Z (close 9.8-9.10, output atomicity, token masking, pull_request guard)
+Last updated: 2026-11-20T23:33Z (add and close 9.11, fenced() escapes pipes)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -655,6 +655,18 @@ it is why this repository's value right now is the plumbing rather than the find
 - [x] **9.8** Stage body and summary through temporary files and atomic replace. Done-when: `scripts/render_report.py` stages both output files in their target directory, replaces the body first and the summary second so the summary is the commit point, removes every temporary if staging fails while leaving existing files untouched, docstring records the atomic commit point, and `tests/test_output_atomicity.py` verifies cleanup and staging invariants. **Issue:** #47.
 - [x] **9.9** Mask caller-supplied github-token before any step logs it. Done-when: `action.yml` opens `steps:` with a token masking step whose `run:` contains no expression interpolation, handles an empty token without failing, precedes every step binding `POSTURE_WATCH_TOKEN`, passes `check_action.py`, and `tests/test_action_token_masking.py` verifies ordering and execution. **Issue:** #64.
 - [x] **9.10** Refuse pull_request event without dry-run: true. Done-when: `action.yml` adds a guard step before Gauge checkout that exits 2 with a single-line stderr error if event is `pull_request` and `dry-run` is not `true`, allows `pull_request` with `dry-run: true`, allows other events, and `tests/test_action_event_guard.py` verifies the event matrix. **Issue:** #65.
+- [x] **9.11** `fenced()` neutralises a pipe as well as a backtick. Added 2026-11-20 from issue
+  #57: GitHub cuts a table row into cells before it reads a code span, so a rule id or an account
+  id carrying `|` added a column to the finding table and pushed the cells after it out of place,
+  and `decode_state` takes any string for both fields, so a hand-edited marker could put such a
+  value in front of the table without a report ever producing it. Done-when: `fenced()` replaces
+  `|` with `\|` before it replaces backticks, `tests/test_fenced_pipes.py` asserts
+  `fenced("a|b")` equals the backticked escaped form and a normal rule id is unchanged, and a
+  rendered report whose rule id contains `|` gives one row per finding, five cells per row, and a
+  marker that still decodes. Closed locally 2026-11-20: the change is one line in
+  `scripts/render_report.py`, the state payload is untouched, and `tests/test_fenced_pipes.py`
+  adds 11 cases (taking the suite from 202 to 213) over the helper, the New, Current and Resolved
+  tables, the account table and a forged marker. **Issue:** #57.
 
 ## 6. Gates
 
@@ -721,7 +733,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 5 | 8 | 62% |
-| 9 (backlog) | Backlog, not scheduled | 4 | 10 | 40% |
+| 9 (backlog) | Backlog, not scheduled | 5 | 11 | 45% |
 | **All phases** | **Readiness total** | **35** | **39** | **90%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -754,6 +766,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 2026-11-09 | Task 2.9 closes: `site/` arrives with a Web3 Sentinel documentation and showcase site, featuring an interactive workflow generator, live issue preview simulator, and protocol architecture pipeline. `.github/workflows/pages.yml` deploys the site to GitHub Pages. Downstream action step execution guards and token redactions included in the same changeset. | 2.9 |
 | 2026-11-14 | Task 9.7 closes: `tests/fixtures/README.md` gains a `sha256` column binding all six JSON report fixtures to their provenance rows while leaving the six fixture files and `tests/test_render_report.py` untouched, and `tests/test_fixture_manifest.py` adds 9 stdlib tests plus `--print-rows` to verify column shape, row coverage, `derived` markers on hand-built reports, and raw-byte digests, printing both digests and the regeneration command on a mismatch. Suite moves from 185 to 194 cases; `ruff` and `mypy` check 11 source files cleanly. | 9.7 |
 | 2026-11-20 | Tasks 9.8, 9.9, and 9.10 close: `scripts/render_report.py` stages outputs through temporary files and replaces body before summary; `action.yml` adds runner token masking as the first composite step and an event guard refusing non-dry pull_request runs before checkout; 3 new unit test modules (`test_output_atomicity.py`, `test_action_token_masking.py`, `test_action_event_guard.py`) add 8 test cases. | 9.8, 9.9, 9.10 |
+| 2026-11-20 | Task 9.11 is added and closes: `fenced()` in `scripts/render_report.py` now writes an inner pipe as `\\|` before it turns backticks into `&#96;`, so a rule id, an account id or a flag name carrying a pipe can no longer end its table cell and shift the cells after it. This changes presentation only: the state marker carries the same payload, and a value without a pipe renders byte for byte as before. Inside a table GitHub removes the backslash again, so the cell shows the value as given; outside a table, in the header sentence, the backslash stays visible. `tests/test_fenced_pipes.py` adds 11 stdlib cases covering the helper, the New, Current and Resolved finding tables at five cells per row, the account table at eight, and a hand-edited marker; before the change the rendered cases fail on rows of six or more cells. Suite moves from 202 to 213 cases; `ruff` and `mypy` check 12 source files cleanly. `ARCHITECTURE.md` section 4 and the rule table in `CONTRIBUTING.md` say what `fenced()` now does. | 9.11 (added) |
 
 ## 9. Last updated line format
 
