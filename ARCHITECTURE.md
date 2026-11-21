@@ -107,8 +107,10 @@ written. Section 2 lists what it insists on. Three jobs beyond layout:
 body and rewrites every `@mention` as `@&#8203;name`, so a chain-chosen `home_domain` or
 finding message cannot open a link, embed an image or notify `@all`. `fenced()` puts a value
 in backticks with any inner backtick turned into `&#96;`, so a value cannot break out of the
-code span that contains it. Both are applied at the point of writing, which means a new
-table row that forgets them is visible in a test rather than in an issue.
+code span that contains it, and with any inner pipe written as `\|`, because GitHub cuts a table
+row into cells before it reads the code span and a bare pipe in a rule id or an account id would
+add a column and shift every cell after it. Both are applied at the point of writing, which means
+a new table row that forgets them is visible in a test rather than in an issue.
 
 **Change detection.** The identity of a finding is its fingerprint. The previous body's
 marker is decoded, the two sets are compared, and `new` / `resolved` are what differ. An

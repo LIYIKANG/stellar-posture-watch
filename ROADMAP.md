@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-20T02:50Z (close 9.35-9.38, local vs pinned, watch timeout, exit-3 probe, self-check perms)
+Last updated: 2026-11-21T12:32Z (add and close 9.39, fenced() escapes pipes)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -728,6 +728,18 @@ it is why this repository's value right now is the plumbing rather than the find
 - [x] **9.36** Time-box the watch job so a hung build cannot hold the cron. `.github/workflows/watch.yml` adds `timeout-minutes: 30` on the `audit` job with reasoning comment. Verified by `tests/test_workflows_watch_timeout.py`. **Issue:** #90.
 - [x] **9.37** Assert the exit-3 probe's four post-conditions. `tests/test_workflows_exit3_probe.py` asserts the assertion script in `.github/workflows/self-check.yml` validates failure outcome, existing report, empty report size, and absent issue body, along with GAUGE_EXIT check and `continue-on-error: true`. **Issue:** #92.
 - [x] **9.38** Enforce read-only permission invariant on self-check workflow. `.github/workflows/self-check.yml` adds comment documenting read-only permissions; `tests/test_self_check_permissions.py` verifies scopes are strictly read-only (`contents: read`, `issues: read`), refusing any write permission and failing if the block is removed. **Issue:** #96.
+- [x] **9.39** `fenced()` neutralises a pipe as well as a backtick. Added 2026-11-20 from issue
+  #57: GitHub cuts a table row into cells before it reads a code span, so a rule id or an account
+  id carrying `|` added a column to the finding table and pushed the cells after it out of place,
+  and `decode_state` takes any string for both fields, so a hand-edited marker could put such a
+  value in front of the table without a report ever producing it. Done-when: `fenced()` replaces
+  `|` with `\|` before it replaces backticks, `tests/test_fenced_pipes.py` asserts
+  `fenced("a|b")` equals the backticked escaped form and a normal rule id is unchanged, and a
+  rendered report whose rule id contains `|` gives one row per finding, five cells per row, and a
+  marker that still decodes. Closed locally 2026-11-20: the change is one line in
+  `scripts/render_report.py`, the state payload is untouched, and `tests/test_fenced_pipes.py`
+  adds 11 cases (taking the suite from 334 to 345) over the helper, the New, Current and Resolved
+  tables, the account table and a forged marker. **Issue:** #57.
 
 ## 6. Gates
 
@@ -794,7 +806,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 7 | 8 | 88% |
-| 9 (backlog) | Backlog, not scheduled | 32 | 38 | 84% |
+| 9 (backlog) | Backlog, not scheduled | 33 | 39 | 85% |
 | **All phases** | **Readiness total** | **37** | **39** | **95%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -839,6 +851,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 2026-11-20T02:46Z | CI matrix and example workflow hardening close: 9.32 adds `posture-watch-run` artifact output in `example/workflow.yml`; 9.33 verifies strict workflow permissions (`contents: read`, `issues: write`); 9.34 executes CI across Python 3.11 and 3.12 while preserving the required `ci / python` check name. | 9.32, 9.33, 9.34 |
 
 | 2026-11-20T02:50Z | Workflow guardrails and permission checks close: 9.35 pins example action while keeping dogfood local; 9.36 enforces audit job timeout bounds in `watch.yml`; 9.37 tests the exit-3 probe post-condition assertions in `self-check.yml`; 9.38 locks `self-check.yml` permissions to read-only. | 9.35, 9.36, 9.37, 9.38 |
+| 2026-11-20 | Task 9.39 is added and closes: `fenced()` in `scripts/render_report.py` now writes an inner pipe as `\\|` before it turns backticks into `&#96;`, so a rule id, an account id or a flag name carrying a pipe can no longer end its table cell and shift the cells after it. This changes presentation only: the state marker carries the same payload, and a value without a pipe renders byte for byte as before. Inside a table GitHub removes the backslash again, so the cell shows the value as given; outside a table, in the header sentence, the backslash stays visible. `tests/test_fenced_pipes.py` adds 11 stdlib cases covering the helper, the New, Current and Resolved finding tables at five cells per row, the account table at eight, and a hand-edited marker; before the change the rendered cases fail on rows of six or more cells. Suite moves from 334 to 345 cases; `ruff` and `mypy` check 12 source files cleanly. `ARCHITECTURE.md` section 4 and the rule table in `CONTRIBUTING.md` say what `fenced()` now does. | 9.39 (added) |
 
 ## 9. Last updated line format
 

@@ -27,7 +27,7 @@ By escaping `MARKDOWN_SPECIAL` first, the ampersand in `@&#8203;name` is inserte
 The renderer applies two distinct sanitization functions based on whether a field is free text or a constrained token:
 
 - **`escape()` for free text**: Used for any string that can contain arbitrary characters, links, formatting, or mentions chosen by account owners or policy authors.
-- **`fenced()` only for values Gauge constrains**: Used exclusively for fields whose format is strictly constrained by Stellar specifications or Gauge validation (such as rule IDs, 56-character public keys, and 64-character hexadecimal fingerprints). `fenced()` wraps the value in backticks and replaces any inner backtick with `&#96;` (`scripts/render_report.py:62-65`).
+- **`fenced()` only for values Gauge constrains**: Used exclusively for fields whose format is strictly constrained by Stellar specifications or Gauge validation (such as rule IDs, 56-character public keys, and 64-character hexadecimal fingerprints). `fenced()` wraps the value in backticks and replaces any inner backtick with `&#96;` and writes any inner pipe as `\|`, so the value can leave neither its code span nor its table cell (`scripts/render_report.py:62-65`).
 
 ## Report-Derived Fields and Their Treatment
 

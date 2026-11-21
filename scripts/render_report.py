@@ -73,8 +73,15 @@ def escape(value: object) -> str:
 
 
 def fenced(value: object) -> str:
-    """A value in backticks, with any run of backticks inside it neutralised."""
-    text = str(value).replace("`", "&#96;")
+    """A value in backticks, with any pipe or run of backticks inside it neutralised.
+
+    GitHub splits a table row into cells before it reads a code span, so a bare pipe ends
+    the cell even between backticks and shifts every cell after it. A pipe that follows a
+    backslash does not, and the table removes that backslash again, so the cell shows the
+    value as it was given. Outside a table the backslash stays visible, which is the cost
+    of one helper that is safe wherever a caller puts it.
+    """
+    text = str(value).replace("|", "\\|").replace("`", "&#96;")
     return f"`{text}`"
 
 
