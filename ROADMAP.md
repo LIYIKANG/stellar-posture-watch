@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-20T02:35Z (close 3.3, 3.5, 9.31: mainnet run, wave submission, config default)
+Last updated: 2026-11-20T02:46Z (close 9.32-9.34, example artifact, example permissions, python matrix)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -721,6 +721,9 @@ it is why this repository's value right now is the plumbing rather than the find
 - [x] **9.29** Enumerate every exit-2 refusal class and exact stderr shape. Done-when: `docs/refusal-classes.md` categorizes every exit-2 path into argument refusals (no prefix), output write failure (no prefix), and report `Refused` exceptions (`render_report: refused: <msg>`), cites source lines in `scripts/render_report.py`, provides real quoted stderr strings from runs, maps each row to its test in `tests/test_render_report.py` (or marks none yet), and `ARCHITECTURE.md` section 7 links to the catalog. **Issue:** #37.
 - [x] **9.30** Document how a fixture is captured and how the provenance table is updated. Done-when: `docs/fixture-provenance.md` outlines the numbered testnet capture procedure using the pinned sha as placeholder, defines table column requirements in `tests/fixtures/README.md`, distinguishes captured vs derived fixtures with field modification tracking rules, quotes `SECURITY.md` on the testnet-only policy and seed-string ban citing `test_no_fixture_contains_a_seed_shaped_string` in `tests/test_render_report.py:599`, and `tests/fixtures/README.md` gains a closing pointer line. **Issue:** #38.
 - [x] **9.31** Make the config default and the example path agree. Done-when: `action.yml` declares `default: .posture/gauge.toml` and the description names it, `tests/test_docs_config_default.py` asserts it equals `example/workflow.yml:53` and `README.md:126` without YAML parsing, and the suite passes. **Issue:** #83.
+- [x] **9.32** Give the example workflow an artifact for the run's numbers and name the action's exit-3 diagnostics artifact. `example/workflow.yml` records outputs to `$RUNNER_TEMP/posture-watch-run.json` (`exit-code`, `issue-number`, `changed`, `report-path`) and uploads artifact `posture-watch-run` (retention 7, `if-no-files-found: ignore`, pinned `actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2`), with comment naming `gauge-diagnostics` as the action's exit-3 stderr. Verified by `tests/test_example_diagnostics_artifact.py`. **Issue:** #85.
+- [x] **9.33** Hold the example workflow to two permissions (`contents: read` and `issues: write`). `tests/test_example_permissions.py` verifies workflow-level permission map contains exactly those two keys, asserts no job-level permission blocks exist, and tests that unknown permissions or `write-all` fail. **Issue:** #86.
+- [x] **9.34** Run CI suite on Python 3.12 as well as 3.11 without moving the required check. `.github/workflows/ci.yml` adds `strategy.matrix.python-version: ["3.11", "3.12"]` with name expression `${{ matrix.python-version == '3.11' && 'ci / python' || format('ci / python ({0})', matrix.python-version) }}` preserving the exact required check name `ci / python` for ruleset 26515104. Verified by `tests/test_workflows_python_matrix.py`. **Issue:** #87.
 
 ## 6. Gates
 
@@ -787,7 +790,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 7 | 8 | 88% |
-| 9 (backlog) | Backlog, not scheduled | 25 | 31 | 81% |
+| 9 (backlog) | Backlog, not scheduled | 28 | 34 | 82% |
 | **All phases** | **Readiness total** | **37** | **39** | **95%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -828,6 +831,8 @@ it is why this repository's value right now is the plumbing rather than the find
 | 2026-11-20T17:35Z | Four documentation deep-dives close: 9.27 maps the renderer escape contract, field table, and mention entity ordering in `docs/escape-contract.md`; 9.28 documents state marker budget, truncation notice, and blind spot in `docs/state-marker.md`; 9.29 catalogues every exit-2 refusal path and stderr format in `docs/refusal-classes.md`; 9.30 defines the capture procedure and provenance rules in `docs/fixture-provenance.md`. `ARCHITECTURE.md` sections 2, 4, and 7 and `tests/fixtures/README.md` link to the new documents. | 9.27, 9.28, 9.29, 9.30 |
 
 | 2026-11-20T02:35Z | Mainnet run, Wave submission status, and config path alignment close: 3.3 documents operator's mainnet audit in `docs/MAINNET_RUN.md` (0 findings, 1 account, ledger 54892144); 3.5 notes Wave 11 application submitted in `docs/WAVE_SUBMISSION.md`; 9.31 aligns `action.yml` config default with `.posture/gauge.toml` proven by `tests/test_docs_config_default.py`. | 3.3, 3.5, 9.31 |
+
+| 2026-11-20T02:46Z | CI matrix and example workflow hardening close: 9.32 adds `posture-watch-run` artifact output in `example/workflow.yml`; 9.33 verifies strict workflow permissions (`contents: read`, `issues: write`); 9.34 executes CI across Python 3.11 and 3.12 while preserving the required `ci / python` check name. | 9.32, 9.33, 9.34 |
 
 ## 9. Last updated line format
 
