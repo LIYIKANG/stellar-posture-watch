@@ -15,7 +15,7 @@ G4 are closed below, on the runs and on the reading of the body against the repo
 and 3.4 did not close it: one maintainer wrote both callers. Every claim here names the run or
 the file it was read from.
 
-Last updated: 2026-11-20T02:46Z (close 9.32-9.34, example artifact, example permissions, python matrix)
+Last updated: 2026-11-20T02:50Z (close 9.35-9.38, local vs pinned, watch timeout, exit-3 probe, self-check perms)
 rather than three, because a contributor who picked up two of them learned no format at all. The
 organization's `ISSUE_CONTRACT.md` in `posture-sec/.github` defines PI-1: a marker line naming the
 repository, the roadmap row, the kind and the wave tier, then nine numbered sections in the order a
@@ -724,6 +724,10 @@ it is why this repository's value right now is the plumbing rather than the find
 - [x] **9.32** Give the example workflow an artifact for the run's numbers and name the action's exit-3 diagnostics artifact. `example/workflow.yml` records outputs to `$RUNNER_TEMP/posture-watch-run.json` (`exit-code`, `issue-number`, `changed`, `report-path`) and uploads artifact `posture-watch-run` (retention 7, `if-no-files-found: ignore`, pinned `actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2`), with comment naming `gauge-diagnostics` as the action's exit-3 stderr. Verified by `tests/test_example_diagnostics_artifact.py`. **Issue:** #85.
 - [x] **9.33** Hold the example workflow to two permissions (`contents: read` and `issues: write`). `tests/test_example_permissions.py` verifies workflow-level permission map contains exactly those two keys, asserts no job-level permission blocks exist, and tests that unknown permissions or `write-all` fail. **Issue:** #86.
 - [x] **9.34** Run CI suite on Python 3.12 as well as 3.11 without moving the required check. `.github/workflows/ci.yml` adds `strategy.matrix.python-version: ["3.11", "3.12"]` with name expression `${{ matrix.python-version == '3.11' && 'ci / python' || format('ci / python ({0})', matrix.python-version) }}` preserving the exact required check name `ci / python` for ruleset 26515104. Verified by `tests/test_workflows_python_matrix.py`. **Issue:** #87.
+- [x] **9.35** Keep the dogfood workflow local and the example pinned. `tests/test_workflows_local_vs_pinned.py` asserts `.github/workflows/watch.yml` uses local action `uses: ./` and contains no remote org reference, while `example/workflow.yml` contains no local references and pins a 40-hex sha or placeholder without mutable tags. Verified with mutation cases. **Issue:** #89.
+- [x] **9.36** Time-box the watch job so a hung build cannot hold the cron. `.github/workflows/watch.yml` adds `timeout-minutes: 30` on the `audit` job with reasoning comment. Verified by `tests/test_workflows_watch_timeout.py`. **Issue:** #90.
+- [x] **9.37** Assert the exit-3 probe's four post-conditions. `tests/test_workflows_exit3_probe.py` asserts the assertion script in `.github/workflows/self-check.yml` validates failure outcome, existing report, empty report size, and absent issue body, along with GAUGE_EXIT check and `continue-on-error: true`. **Issue:** #92.
+- [x] **9.38** Enforce read-only permission invariant on self-check workflow. `.github/workflows/self-check.yml` adds comment documenting read-only permissions; `tests/test_self_check_permissions.py` verifies scopes are strictly read-only (`contents: read`, `issues: read`), refusing any write permission and failing if the block is removed. **Issue:** #96.
 
 ## 6. Gates
 
@@ -790,7 +794,7 @@ it is why this repository's value right now is the plumbing rather than the find
 | 1 | The action | 11 | 11 | 100% |
 | 2 | Public shape | 12 | 13 | 92% |
 | 3 | Real use | 7 | 8 | 88% |
-| 9 (backlog) | Backlog, not scheduled | 28 | 34 | 82% |
+| 9 (backlog) | Backlog, not scheduled | 32 | 38 | 84% |
 | **All phases** | **Readiness total** | **37** | **39** | **95%** |
 | Gates | G1 to G5 | 4 | 5 | 80% |
 <!-- PROGRESS:END -->
@@ -833,6 +837,8 @@ it is why this repository's value right now is the plumbing rather than the find
 | 2026-11-20T02:35Z | Mainnet run, Wave submission status, and config path alignment close: 3.3 documents operator's mainnet audit in `docs/MAINNET_RUN.md` (0 findings, 1 account, ledger 54892144); 3.5 notes Wave 11 application submitted in `docs/WAVE_SUBMISSION.md`; 9.31 aligns `action.yml` config default with `.posture/gauge.toml` proven by `tests/test_docs_config_default.py`. | 3.3, 3.5, 9.31 |
 
 | 2026-11-20T02:46Z | CI matrix and example workflow hardening close: 9.32 adds `posture-watch-run` artifact output in `example/workflow.yml`; 9.33 verifies strict workflow permissions (`contents: read`, `issues: write`); 9.34 executes CI across Python 3.11 and 3.12 while preserving the required `ci / python` check name. | 9.32, 9.33, 9.34 |
+
+| 2026-11-20T02:50Z | Workflow guardrails and permission checks close: 9.35 pins example action while keeping dogfood local; 9.36 enforces audit job timeout bounds in `watch.yml`; 9.37 tests the exit-3 probe post-condition assertions in `self-check.yml`; 9.38 locks `self-check.yml` permissions to read-only. | 9.35, 9.36, 9.37, 9.38 |
 
 ## 9. Last updated line format
 
